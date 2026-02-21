@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./Expyre"
+    ],
+    "python.defaultInterpreterPath": "./Expyre/venv/Scripts/python.exe",
+    "python.analysis.typeCheckingMode": "basic"
+}

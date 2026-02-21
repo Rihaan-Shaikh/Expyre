@@ -1,0 +1,12 @@
+{
+    "executionEnvironments": [
+        {
+            "root": "Expyre",
+            "extraPaths": [
+                "Expyre"
+            ]
+        }
+    ],
+    "venvPath": "Expyre",
+    "venv": "venv"
+}
