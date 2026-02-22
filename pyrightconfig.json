@@ -5,6 +5,12 @@
             "extraPaths": [
                 "Expyre"
             ]
+        },
+        {
+            "root": ".",
+            "extraPaths": [
+                "Expyre"
+            ]
         }
     ],
     "venvPath": "Expyre",

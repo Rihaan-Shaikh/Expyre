@@ -1,0 +1,3 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/Expyre/venv/Scripts/python.exe"
+}

@@ -30,9 +30,7 @@ from app.database import (
     delete_expired_data
 )
 allowed_origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://expyre.pages.dev",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
