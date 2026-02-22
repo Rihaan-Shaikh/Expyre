@@ -6,7 +6,7 @@ import Inbox from "../components/Inbox";
 import Background3D from "../components/Background3D";
 import Logo from "../components/Logo";
 import { useToast } from "../components/Toast";
-import { api } from "../services/api";
+import { generateEmail, getEmailDetails, getInbox } from "../api/api";
 
 export default function Dashboard() {
   const [email, setEmail] = useState(null);
@@ -40,14 +40,14 @@ export default function Dashboard() {
         try {
           const { email: savedEmail } = JSON.parse(savedSession);
           setIsLoading(true);
-          const details = await api.getEmailDetails(savedEmail);
+          const details = await getEmailDetails(savedEmail);
 
           if (details.exists && !details.expired) {
             setEmail(details.email);
             setExpiresAt(details.expires_at);
 
             // Initial inbox fetch
-            const messages = await api.getInbox(details.email);
+            const messages = await getInbox(details.email);
             setInboxMessages(messages);
             setIsLoading(false);
             return;
@@ -57,7 +57,7 @@ export default function Dashboard() {
         }
       }
       // If no session or invalid/expired, generate new one
-      generateEmail();
+      handleGenerateEmail();
     };
 
     checkSession();
@@ -74,7 +74,7 @@ export default function Dashboard() {
     // Start polling every 10 seconds
     pollingRef.current = setInterval(async () => {
       try {
-        const messages = await api.getInbox(email);
+        const messages = await getInbox(email);
 
         // Notify if new messages arrived
         if (messages.length > inboxMessages.length) {
@@ -98,7 +98,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, isExpired, inboxMessages.length]);
 
-  const generateEmail = async () => {
+  const handleGenerateEmail = async () => {
     setIsLoading(true);
     setError(null);
     setIsExpired(false);
@@ -106,18 +106,23 @@ export default function Dashboard() {
     localStorage.removeItem('expyre_session');
 
     try {
-      const data = await api.generateEmail();
+      const data = await generateEmail();
 
-      setEmail(data.email);
-      setExpiresAt(data.expires_at);
-      info("New temporary address generated!");
+      if (data && data.email) {
+        setEmail(data.email);
+        setExpiresAt(data.expires_at || null);
+        info("New temporary address generated!");
 
-      // Save session
-      localStorage.setItem('expyre_session', JSON.stringify({
-        email: data.email,
-        expiresAt: data.expires_at
-      }));
-    } catch {
+        // Save session
+        localStorage.setItem('expyre_session', JSON.stringify({
+          email: data.email,
+          expiresAt: data.expires_at
+        }));
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.error("Generation error:", err);
       setError("Failed to generate email. Please try again.");
     } finally {
       setIsLoading(false);
@@ -136,7 +141,7 @@ export default function Dashboard() {
   const handleRefreshInbox = async () => {
     if (!email || isExpired) return;
     try {
-      const messages = await api.getInbox(email);
+      const messages = await getInbox(email);
       if (messages.length > inboxMessages.length) {
         success("Inbox up to date!");
       }
@@ -186,7 +191,7 @@ export default function Dashboard() {
                 <span className="font-medium text-lg">{error}</span>
               </div>
               <button
-                onClick={generateEmail}
+                onClick={handleGenerateEmail}
                 className="px-6 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all font-medium"
               >
                 Try Again
@@ -230,7 +235,7 @@ export default function Dashboard() {
           {isExpired && (
             <div className="text-center mb-12 animate-fade-in-up">
               <button
-                onClick={generateEmail}
+                onClick={handleGenerateEmail}
                 className="group relative px-12 py-5 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-2xl text-lg font-bold text-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/30 hover:scale-105"
               >
                 <span className="relative z-10 flex items-center gap-3">
