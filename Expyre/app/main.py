@@ -70,7 +70,7 @@ def check_rate_limit(request: Request):
 async def lifespan(app: FastAPI):
     logger.info("Starting Expyre backend")
     create_tables()
-    asyncio.create_task(cleanup_loop())
+    # asyncio.create_task(cleanup_loop())
     yield
     logger.info("Shutting down Expyre backend")
 
@@ -78,7 +78,11 @@ app = FastAPI(title="Expyre API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=[
+        "https://expyre.pages.dev",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
