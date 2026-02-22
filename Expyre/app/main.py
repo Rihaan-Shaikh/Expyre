@@ -12,6 +12,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, Header, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import (
@@ -74,10 +75,15 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Expyre backend")
 
 app = FastAPI(title="Expyre API", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=[
+        "https://expyre.pages.dev",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -119,10 +125,11 @@ def generate_email(request: Request):
     )
 
 
-    return{
-        "email":email,
-        "expires_in_minutes":10
-    }
+    return JSONResponse(content={
+        "email": email,
+        "expires_in_minutes": 10,
+        "expires_at": expires_at.isoformat()
+    })
 
 
 @app.get("/temp-email/{email}")

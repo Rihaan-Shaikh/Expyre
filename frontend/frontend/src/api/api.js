@@ -5,7 +5,9 @@ const BASE_URL = "https://expyre.onrender.com";
  */
 export async function generateEmail() {
     try {
-        const response = await fetch(`${BASE_URL}/generate-email`);
+        const response = await fetch(`${BASE_URL}/generate-email`, {
+            method: "GET",
+        });
         if (!response.ok) {
             throw new Error(`Failed to generate email: ${response.statusText}`);
         }
