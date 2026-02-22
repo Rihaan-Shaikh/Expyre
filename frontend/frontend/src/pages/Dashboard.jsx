@@ -12,12 +12,14 @@ export default function Dashboard() {
   const [email, setEmail] = useState(null);
   const [expiresAt, setExpiresAt] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [inboxMessages, setInboxMessages] = useState([]);
 
   const { success, info } = useToast();
   const pollingRef = useRef(null);
+  const slowTimerRef = useRef(null);
   const containerRef = useRef(null);
 
   // Initial animations
@@ -81,8 +83,6 @@ export default function Dashboard() {
           const newMsgCount = messages.length - inboxMessages.length;
           setInboxMessages(messages);
           success(`Received ${newMsgCount} new message${newMsgCount > 1 ? 's' : ''}!`);
-
-          // Play a subtle sound or trigger a pulse animation (optional)
         } else if (JSON.stringify(messages) !== JSON.stringify(inboxMessages)) {
           // If content changed but count didn't (rare but possible)
           setInboxMessages(messages);
@@ -100,10 +100,14 @@ export default function Dashboard() {
 
   const handleGenerateEmail = async () => {
     setIsLoading(true);
+    setIsSlowLoading(false);
     setError(null);
     setIsExpired(false);
     setInboxMessages([]);
     localStorage.removeItem('expyre_session');
+
+    // Show "waking up" message if backend takes > 5 seconds (Render free tier cold start)
+    slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 5000);
 
     try {
       const data = await generateEmail();
@@ -123,8 +127,10 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Generation error:", err);
-      setError("Failed to generate email. Please try again.");
+      setError(err.message || "Failed to generate email. Please try again.");
     } finally {
+      clearTimeout(slowTimerRef.current);
+      setIsSlowLoading(false);
       setIsLoading(false);
     }
   };
@@ -215,7 +221,11 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="text-primary text-xl font-medium">Generating your email...</p>
-              <p className="text-secondary text-sm mt-2">This won't take long</p>
+              {isSlowLoading ? (
+                <p className="text-yellow-400 text-sm mt-2 animate-pulse">Backend is waking up — this may take up to 30 seconds...</p>
+              ) : (
+                <p className="text-secondary text-sm mt-2">This won't take long</p>
+              )}
             </div>
           )}
 
