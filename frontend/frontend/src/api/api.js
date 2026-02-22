@@ -9,11 +9,7 @@ export async function generateEmail() {
         if (!response.ok) {
             throw new Error(`Failed to generate email: ${response.statusText}`);
         }
-        const data = await response.json();
-
-        // Fetch full details to get expires_at formatted correctly for the UI
-        const details = await getEmailDetails(data.email);
-        return details;
+        return await response.json();
     } catch (error) {
         console.error("API Error (generateEmail):", error);
         throw error;
