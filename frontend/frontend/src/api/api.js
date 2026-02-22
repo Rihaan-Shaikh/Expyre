@@ -23,7 +23,9 @@ export async function generateEmail() {
  */
 export async function getEmailDetails(email) {
     try {
-        const response = await fetch(`${BASE_URL}/temp-email/${email}`);
+        const response = await fetch(`${BASE_URL}/temp-email/${email}`, {
+            method: "GET",
+        });
         if (!response.ok) {
             throw new Error("Failed to fetch email details");
         }
@@ -39,7 +41,9 @@ export async function getEmailDetails(email) {
  */
 export async function getInbox(email) {
     try {
-        const response = await fetch(`${BASE_URL}/inbox/${email}`);
+        const response = await fetch(`${BASE_URL}/inbox/${email}`, {
+            method: "GET",
+        });
         if (!response.ok) {
             throw new Error("Failed to fetch inbox");
         }
