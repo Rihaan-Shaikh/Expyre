@@ -69,7 +69,7 @@ def check_rate_limit(request: Request):
 async def lifespan(app: FastAPI):
     logger.info("Starting Expyre backend")
     create_tables()
-    asyncio.create_task(cleanup_loop())
+    # asyncio.create_task(cleanup_loop())
     yield
     logger.info("Shutting down Expyre backend")
 
