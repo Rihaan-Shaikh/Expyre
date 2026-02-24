@@ -13,7 +13,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
 
 from app.config import (
     WEBHOOK_SECRET,
@@ -30,11 +31,7 @@ from app.database import (
     save_received_email,
     delete_expired_data
 )
-allowed_origins = [
-    "https://expyre.pages.dev",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -76,17 +73,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Expyre API", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://expyre.pages.dev",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Custom CORS Middleware — replaces CORSMiddleware for production reliability
+class CustomCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "https://expyre.pages.dev"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
+app.add_middleware(CustomCORSMiddleware)
 
 
 
