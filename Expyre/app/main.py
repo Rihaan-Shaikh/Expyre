@@ -12,9 +12,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, Header, HTTPException
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import (
     WEBHOOK_SECRET,
@@ -73,16 +71,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Expyre API", lifespan=lifespan)
 
-# Custom CORS Middleware — replaces CORSMiddleware for production reliability
-class CustomCORSMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: StarletteRequest, call_next):
-        response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "https://expyre.pages.dev"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        return response
-
-app.add_middleware(CustomCORSMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://expyre.pages.dev"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
@@ -121,11 +118,16 @@ def generate_email(request: Request):
     )
 
 
-    return JSONResponse(content={
+    return {
         "email": email,
         "expires_in_minutes": 10,
         "expires_at": expires_at.isoformat()
-    })
+    }
+
+
+@app.get("/cors-test")
+def cors_test():
+    return {"status": "cors working"}
 
 
 @app.get("/temp-email/{email}")
@@ -254,4 +256,5 @@ async def cleanup_loop():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
