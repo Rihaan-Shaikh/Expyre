@@ -29,7 +29,12 @@ from app.database import (
 
 )
 allowed_origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "https://expyre.pages.dev",
+    "https://expyre.me",
+    "https://www.expyre.me",
 ]
 
 logging.basicConfig(
