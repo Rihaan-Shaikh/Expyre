@@ -14,7 +14,7 @@ from app.config import (
     EMAIL_EXPIRY_MINUTES
 )
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager #to run the dlt fnc in sync every second the server runs
 
 from fastapi import FastAPI, Request, Header, HTTPException
@@ -47,7 +47,7 @@ logger = logging.getLogger("expyre")
 rate_limit_store = {}
 def check_rate_limit(request: Request):
     ip = request.client.host if request.client else "unknown"
-    now = datetime.utcnow().timestamp()
+    now = datetime.now(timezone.utc).timestamp()
 
     if ip not in rate_limit_store:
         rate_limit_store[ip] = []
@@ -110,7 +110,7 @@ def generate_email(request: Request):
     username= ''.join(random.choices(string.ascii_lowercase+string.digits,k=8))
     email=f"{username}@expyre.com"
 
-    created_at=datetime.utcnow()
+    created_at = datetime.now(timezone.utc)
     expires_at = created_at + timedelta(minutes=EMAIL_EXPIRY_MINUTES)
 
 
@@ -123,7 +123,8 @@ def generate_email(request: Request):
 
     return{
         "email":email,
-        "expires_in_minutes":10
+        "expires_in_minutes":10,
+        "expires_at": expires_at.isoformat()
     }
 
 
@@ -136,7 +137,7 @@ def read_temp_email(email: str):
 
     email_value, created_at, expires_at = record
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expires_at_dt = datetime.fromisoformat(expires_at)
     expired = now > expires_at_dt
 
@@ -171,7 +172,7 @@ def read_inbox(email: str, request: Request):
         return {"email": email, "messages": []}
 
     _, _, expires_at = record
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expired = now > datetime.fromisoformat(expires_at)
 
     if expired:
@@ -201,7 +202,7 @@ def simulate_email(
     subject: str = "Test Subject",
     body: str = "This is a test email body"
 ):
-    received_at = datetime.utcnow().isoformat()
+    received_at = datetime.now(timezone.utc).isoformat()
 
     save_received_email(
         to_email=to_email,
@@ -230,7 +231,7 @@ def email_webhook(
     if not to_email:
         return {"status": "ignored"}
 
-    received_at = datetime.utcnow().isoformat()
+    received_at = datetime.now(timezone.utc).isoformat()
 
     save_received_email(
         to_email=to_email,
@@ -243,7 +244,7 @@ def email_webhook(
     return {"status": "received"}
 async def cleanup_loop():
     while True:
-        now_iso = datetime.utcnow().isoformat()
+        now_iso = datetime.now(timezone.utc).isoformat()
         delete_expired_data(now_iso)
 
         # wait 60 seconds before next cleanup

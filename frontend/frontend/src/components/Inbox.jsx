@@ -97,7 +97,10 @@ export default function Inbox({ messages = [], isExpired, onRefresh }) {
 
 function EmailListItem({ message, onClick, style }) {
     const formatTime = (dateString) => {
-        const date = new Date(dateString);
+        const safeStr = (dateString && !dateString.endsWith('Z') && !dateString.includes('+'))
+            ? `${dateString}Z`
+            : dateString;
+        const date = new Date(safeStr);
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);

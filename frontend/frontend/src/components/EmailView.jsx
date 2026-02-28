@@ -1,6 +1,9 @@
 export default function EmailView({ email, onClose }) {
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
+        const safeStr = (dateString && !dateString.endsWith('Z') && !dateString.includes('+'))
+            ? `${dateString}Z`
+            : dateString;
+        const date = new Date(safeStr);
         return date.toLocaleString([], {
             month: 'short',
             day: 'numeric',
