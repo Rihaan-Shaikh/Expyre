@@ -108,7 +108,7 @@ def generate_email(request: Request):
         )
 
     username= ''.join(random.choices(string.ascii_lowercase+string.digits,k=8))
-    email=f"{username}@expyre.com"
+    email=f"{username}@expyre.me"
 
     created_at = datetime.now(timezone.utc)
     expires_at = created_at + timedelta(minutes=EMAIL_EXPIRY_MINUTES)
