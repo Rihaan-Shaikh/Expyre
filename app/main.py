@@ -214,11 +214,39 @@ def simulate_email(
 
     return {"status": "saved"}
 
+from fastapi import Body
+
 @app.post("/webhook/email")
 def email_webhook(
-    payload: dict,
+    payload: dict = Body(...),
     x_webhook_token: str = Header(None)
 ):
+    if x_webhook_token != WEBHOOK_SECRET:
+        logger.warning("Unauthorized webhook attempt")
+        raise HTTPException(status_code=401, detail="Unauthorized webhook")
+
+    to_email = payload.get("to")
+    from_email = payload.get("from")
+    subject = payload.get("subject", "")
+    body = payload.get("text", "")
+
+    if not to_email:
+        logger.warning("Webhook received without recipient")
+        return {"status": "ignored"}
+
+    received_at = datetime.utcnow().isoformat()
+
+    save_received_email(
+        to_email=to_email,
+        from_email=from_email,
+        subject=subject,
+        body=body,
+        received_at=received_at
+    )
+
+    logger.info(f"Email saved for {to_email}")
+
+    return {"status": "received"}
     if x_webhook_token != WEBHOOK_SECRET:
         logger.warning("Unauthorized webhook attempt")
         raise HTTPException(status_code=401, detail="Unauthorized webhook")
