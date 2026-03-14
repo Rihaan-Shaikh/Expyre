@@ -183,10 +183,10 @@ def read_inbox(email: str, request: Request):
     inbox = []
     for msg in messages:
         inbox.append({
-            "from": msg[0],
-            "subject": msg[1],
-            "body": msg[2],
-            "received_at": msg[3]
+            "from": msg[2],
+            "subject": msg[3],
+            "body": msg[4],
+            "received_at": msg[5]
         })
 
     return {

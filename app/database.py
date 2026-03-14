@@ -62,33 +62,60 @@ def get_temp_email(email):
     return result
 
 def get_inbox_for_email(email):
+    import logging
+    logger = logging.getLogger("expyre")
+    
     conn=get_connection()
     cursor=conn.cursor()
 
+    clean_email = email.lower().strip()
+
     cursor.execute("""
-    SELECT from_email,subject,body,received_at
+    SELECT *
     FROM received_emails
     WHERE to_email =?
     ORDER BY received_at DESC
-    """,(email,))
+    """,(clean_email,))
 
     rows=cursor.fetchall()
     conn.close()
+    
+    logger.info(f"[DB] get_inbox_for_email('{clean_email}') returned {len(rows)} messages")
 
     return rows
 
 def save_received_email(to_email, from_email, subject, body, received_at):
+    import re
+    import logging
+    logger = logging.getLogger("expyre")
+
+    def extract_email(value):
+        match = re.search(r'<([^>]+)>', value)
+        if match:
+            return match.group(1).lower().strip()
+        return value.lower().strip()
+
+    clean_to_email = extract_email(to_email)
+    clean_from_email = extract_email(from_email)
+
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
     INSERT INTO received_emails (to_email, from_email, subject, body, received_at)
     VALUES (?, ?, ?, ?, ?)
-    """, (to_email, from_email, subject, body, received_at))
+    """, (
+        clean_to_email,
+        clean_from_email,
+        subject,
+        body,
+        received_at
+    ))
 
     conn.commit()
     conn.close()
 
+    logger.info(f"[DB] email stored for {clean_to_email}")
 
 def delete_expired_data(current_time_iso):
     conn = get_connection()
