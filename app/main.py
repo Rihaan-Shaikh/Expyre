@@ -3,6 +3,7 @@ import random
 import string
 import asyncio
 import logging
+import mailparser
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
 
@@ -217,47 +218,47 @@ def simulate_email(
 from fastapi import Body
 
 @app.post("/webhook/email")
-def email_webhook(
-    payload: dict = Body(...),
+async def email_webhook(
+    request: Request,
     x_webhook_token: str = Header(None)
 ):
     if x_webhook_token != WEBHOOK_SECRET:
         logger.warning("Unauthorized webhook attempt")
         raise HTTPException(status_code=401, detail="Unauthorized webhook")
 
-    to_email = payload.get("to")
-    from_email = payload.get("from")
-    subject = payload.get("subject", "")
-    body = payload.get("text", "")
+    raw_body = await request.body()
+    
+    if not raw_body:
+        logger.warning("Webhook received empty body")
+        return {"status": "ignored"}
 
-    if not to_email:
+    try:
+        mail = mailparser.parse_from_bytes(raw_body)
+    except Exception as e:
+        logger.error(f"Failed to parse email: {e}")
+        return {"status": "error", "detail": "Failed to parse MIME content"}
+
+    to_email_list = mail.to
+    if not to_email_list:
         logger.warning("Webhook received without recipient")
         return {"status": "ignored"}
+    
+    # mail.to and mail.from_ return a list of tuples: [('Name', 'email@host.com')]
+    to_email = to_email_list[0][1] if to_email_list[0][1] else to_email_list[0][0]
+    
+    from_email_list = mail.from_
+    from_email = ""
+    if from_email_list:
+        from_email = from_email_list[0][1] if from_email_list[0][1] else from_email_list[0][0]
 
-    received_at = datetime.utcnow().isoformat()
-
-    save_received_email(
-        to_email=to_email,
-        from_email=from_email,
-        subject=subject,
-        body=body,
-        received_at=received_at
-    )
-
-    logger.info(f"Email saved for {to_email}")
-
-    return {"status": "received"}
-    if x_webhook_token != WEBHOOK_SECRET:
-        logger.warning("Unauthorized webhook attempt")
-        raise HTTPException(status_code=401, detail="Unauthorized webhook")
-
-    to_email = payload.get("to")
-    from_email = payload.get("from")
-    subject = payload.get("subject", "")
-    body = payload.get("text", "")
-
-    if not to_email:
-        return {"status": "ignored"}
+    subject = mail.subject or ""
+    
+    # Text prioritization
+    body = ""
+    if mail.text_plain:
+        body = "\n".join(mail.text_plain)
+    elif mail.text_html:
+        body = "\n".join(mail.text_html)
 
     received_at = datetime.now(timezone.utc).isoformat()
 
@@ -268,6 +269,8 @@ def email_webhook(
         body=body,
         received_at=received_at
     )
+
+    logger.info(f"Email saved for {to_email}")
 
     return {"status": "received"}
 async def cleanup_loop():
